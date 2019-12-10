@@ -28,5 +28,7 @@ module.exports = {
         'import/prefer-default-export': 'off',
         'react/state-in-constructor': 'off',
         'react/jsx-props-no-spreading': 'off',
+        'no-console': ['error', {allow: ['tron']}],
+        'no-param-reassign': 'off',
     },
 };

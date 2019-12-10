@@ -1,10 +1,16 @@
 import React, {Component} from 'react';
+import {bindActionCreators} from 'redux';
+import {connect} from 'react-redux';
 
 import {FlatList} from 'react-native-gesture-handler';
 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+import {formatPrice} from '../../util/format';
+
 import api from '../../services/api';
+
+import * as cartActions from '../../store/modules/cart/actions';
 
 import {
     Container,
@@ -18,7 +24,7 @@ import {
     AddButtonText,
 } from './styles';
 
-export default class Main extends Component {
+class Main extends Component {
     state = {
         products: [],
     };
@@ -26,19 +32,34 @@ export default class Main extends Component {
     async componentDidMount() {
         const response = await api.get('/products');
 
-        this.setState({products: response.data});
+        const data = response.data.map(product => ({
+            ...product,
+            priceFormatted: formatPrice(product.price),
+        }));
+
+        this.setState({products: data});
     }
 
+    handleAddProduct = product => {
+        const {addToCart} = this.props;
+
+        addToCart(product);
+    };
+
     renderProduct = ({item}) => {
+        const {amount} = this.props;
+
         return (
             <Product>
                 <ProductImage source={{uri: item.image}} />
                 <ProductTitle>{item.title}</ProductTitle>
-                <ProductPrice>{item.price}</ProductPrice>
-                <AddButton>
+                <ProductPrice>{item.priceFormatted}</ProductPrice>
+                <AddButton onPress={() => this.handleAddProduct(item)}>
                     <ProductAmount>
                         <Icon name="add-shopping-cart" color="#fff" size={20} />
-                        <ProductAmountText>1</ProductAmountText>
+                        <ProductAmountText>
+                            {amount[item.id] || 0}
+                        </ProductAmountText>
                     </ProductAmount>
                     <AddButtonText>ADICIONAR</AddButtonText>
                 </AddButton>
@@ -48,6 +69,7 @@ export default class Main extends Component {
 
     render() {
         const {products} = this.state;
+
         return (
             <Container>
                 <FlatList
@@ -60,3 +82,16 @@ export default class Main extends Component {
         );
     }
 }
+
+const mapStateToProps = state => ({
+    amount: state.cart.reduce((amount, product) => {
+        amount[product.id] = product.amount;
+
+        return amount;
+    }, {}),
+});
+
+const mapDispatchToProps = dispatch =>
+    bindActionCreators(cartActions, dispatch);
+
+export default connect(mapStateToProps, mapDispatchToProps)(Main);
